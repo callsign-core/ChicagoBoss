@@ -1,14 +1,23 @@
-%%%-------------------------------------------------------------------
-%%% @author Jose Luis Gordo Romero <jgordor@gmail.com>
-%%% @doc Chicago Boss rebar functions, called from boss_plugin
-%%%  Managing compilation/configuration/scripts stuff, the boss way
-%%% @end
-%%%-------------------------------------------------------------------
+%%-------------------------------------------------------------------
+%% @author
+%%     ChicagoBoss Team and contributors, see AUTHORS file in root directory
+%% @end
+%% @copyright
+%%     This file is part of ChicagoBoss project.
+%%     See AUTHORS file in root directory
+%%     for license information, see LICENSE file in root directory
+%% @end
+%% @doc
+%%     Chicago Boss rebar functions, called from boss_plugin
+%%     Managing compilation/configuration/scripts stuff, the boss way
+%% @end
+%%-------------------------------------------------------------------
+
 -module(boss_rebar).
 
 -export([run/4,
-         run/5, 
-         help/0, 
+         run/5,
+         help/0,
          help/3,
          compile/3,
          compile/4,
@@ -27,17 +36,17 @@
          init_conf/1
         ]).
 
--define(COMMANDS, 
-		[{help,  "Lists all commands"},
-		 {compile, "Compile (boss way)"},
-		 {test_eunit, "Run src/test/eunit tests"},
-		 {test_functional, "Run src/test/functional tests"},
-		 {start_cmd, "Generates the start shell command"},
-		 {start_dev_cmd, "Generates the start-dev shell command"},
-		 {stop_cmd, "Generates the stop shell command"},
-		 {reload_cmd, "Generates the hot reload shell command"},
+-define(COMMANDS,
+        [{help,  "Lists all commands"},
+         {compile, "Compile (boss way)"},
+         {test_eunit, "Run src/test/eunit tests"},
+         {test_functional, "Run src/test/functional tests"},
+         {start_cmd, "Generates the start shell command"},
+         {start_dev_cmd, "Generates the start-dev shell command"},
+         {stop_cmd, "Generates the stop shell command"},
+         {reload_cmd, "Generates the hot reload shell command"},
                  {attach_cmd, "Attach the production system console"}
-		]).
+        ]).
 
 -define(BOSS_PLUGIN_VERSION, 1).
 -define(ERLANG_MIN_VERSION, "15").
@@ -51,7 +60,7 @@
 run(_,_,BossConf,_) ->
     report_bad_client_version_and_exit(BossConf).
 run(Version, Command, RebarConf, BossConf, AppFile) when is_list(Command)->
-	run(Version, list_to_atom(Command), RebarConf, BossConf, AppFile);
+    run(Version, list_to_atom(Command), RebarConf, BossConf, AppFile);
 run(Version, Command, RebarConf, BossConf, AppFile) ->
     rebar_log:log(debug, "Checking rebar plugin client version and Erlang runtime version'~s'~n", [Command]),
     ErlVsn = otp_version(),
@@ -59,15 +68,15 @@ run(Version, Command, RebarConf, BossConf, AppFile) ->
         false ->
             report_bad_client_version_and_exit(BossConf);
         true when ErlVsn < ?ERLANG_MIN_VERSION ->
-	    report_old_erlang_version_and_exit(ErlVsn);
+        report_old_erlang_version_and_exit(ErlVsn);
         true ->
             rebar_log:log(debug, "About to run command '~s'~n", [Command]),
-        	case lists:keyfind(Command, 1, ?COMMANDS) of
-        		false -> 
-        			{error, command_not_found};
-        		_ -> 
-        			apply(boss_rebar, Command, [RebarConf, BossConf, AppFile])
-        	end
+            case lists:keyfind(Command, 1, ?COMMANDS) of
+                false ->
+                    {error, command_not_found};
+                _ ->
+                    apply(boss_rebar, Command, [RebarConf, BossConf, AppFile])
+            end
     end.
 
 otp_version() ->
@@ -79,16 +88,16 @@ otp_version() ->
 %%--------------------------------------------------------------------
 %% @doc compile
 %% @spec compile(RebarConf, BossConf, AppFile) -> ok | {error, Reason}
-%%       Chicago Boss compilation, handling all cb special needs 
+%%       Chicago Boss compilation, handling all cb special needs
 %% @end
 %%--------------------------------------------------------------------
 compile(RebarConf, BossConf, AppFile) ->
     compile(RebarConf, BossConf, AppFile, "ebin").
 %%--------------------------------------------------------------------
 %% @doc compile
-%% @spec compile(_RebarConf, _BossConf, AppFile, Dest) -> 
+%% @spec compile(_RebarConf, _BossConf, AppFile, Dest) ->
 %%                                                ok | {error, Reason}
-%%       Chicago Boss compilation, handling all cb special needs 
+%%       Chicago Boss compilation, handling all cb special needs
 %% @end
 %%--------------------------------------------------------------------
 compile(RebarConf, BossConf, AppFile, Dest) ->
@@ -109,14 +118,14 @@ compile(RebarConf, BossConf, AppFile, Dest) ->
 
     AppName = app_name(AppFile),
     Res = boss_load:load_all_modules_and_emit_app_file(AppName, Dest),
-    rebar_log:log(info, "Chicago Boss compilation of app ~s on ~s (~s)~n", 
+    rebar_log:log(info, "Chicago Boss compilation of app ~s on ~s (~s)~n",
                   [AppName, Dest, Res]).
 
 %%--------------------------------------------------------------------
 %% @doc test_eunit
-%% @spec test_eunit(_RebarConf, _BossConf, AppFile) -> 
+%% @spec test_eunit(_RebarConf, _BossConf, AppFile) ->
 %%                                                ok | {error, Reason}
-%%       Chicago Boss eunit integration 
+%%       Chicago Boss eunit integration
 %% @end
 %%--------------------------------------------------------------------
 test_eunit(RebarConf, BossConf, AppFile) ->
@@ -124,23 +133,23 @@ test_eunit(RebarConf, BossConf, AppFile) ->
 
 %%--------------------------------------------------------------------
 %% @doc test_functional
-%% @spec test_functional(_RebarConf, _BossConf, AppFile) -> 
+%% @spec test_functional(_RebarConf, _BossConf, AppFile) ->
 %%                                                ok | {error, Reason}
 %%       Chicago Boss functionals test
 %%       API: http://www.chicagoboss.org/api-test.html
 %% @end
 %%--------------------------------------------------------------------
 test_functional(RebarConf, BossConf, AppFile) ->
-	%% Compile, load all boss ebin dir and start boss
-	boss_rebar:compile(RebarConf, BossConf, AppFile),
-	boss_rebar:boss_load(BossConf, AppFile),
-	% boss_rebar:boss_start(BossConf),
-	AppName = app_name(AppFile),
-	boss_web_test:start([atom_to_list(AppName)]).
+    %% Compile, load all boss ebin dir and start boss
+    boss_rebar:compile(RebarConf, BossConf, AppFile),
+    boss_rebar:boss_load(BossConf, AppFile),
+    % boss_rebar:boss_start(BossConf),
+    AppName = app_name(AppFile),
+    boss_web_test:start([atom_to_list(AppName)]).
 
 %%--------------------------------------------------------------------
 %% @doc start_cmd
-%% @spec start_cmd(RebarConf, BossConf, AppFile) -> 
+%% @spec start_cmd(RebarConf, BossConf, AppFile) ->
 %%                                                ok | {error, Reason}
 %%       Generate start shell command (production)
 %% @end
@@ -161,7 +170,7 @@ start_cmd(_RebarConf, BossConf, AppFile) ->
 
 %%--------------------------------------------------------------------
 %% @doc start_dev_cmd
-%% @spec start_dev_cmd(RebarConf, BossConf, AppFile) -> 
+%% @spec start_dev_cmd(RebarConf, BossConf, AppFile) ->
 %%                                                ok | {error, Reason}
 %%       Generate start-dev shell command (development)
 %% @end
@@ -169,12 +178,12 @@ start_cmd(_RebarConf, BossConf, AppFile) ->
 start_dev_cmd(_RebarConf, BossConf, AppFile) ->
   rebar_log:log(info, "Generating dynamic start-dev command~n", []),
 
-  AppName	= app_name(AppFile),
-  NameArg	= vm_name_arg(BossConf, AppFile),
-  ErlCmd	= erl_command(),
-  EbinDirs	= all_ebin_dirs(BossConf, AppFile),
-  CookieOpt	= cookie_option(BossConf),
-  VmArgs	= vm_args(BossConf),
+  AppName    = app_name(AppFile),
+  NameArg    = vm_name_arg(BossConf, AppFile),
+  ErlCmd    = erl_command(),
+  EbinDirs    = all_ebin_dirs(BossConf, AppFile),
+  CookieOpt    = cookie_option(BossConf),
+  VmArgs    = vm_args(BossConf),
   io:format("~s -pa ~s -boss developing_app ~s -boot start_sasl -config boss ~s -s reloader -s lager -s boss ~s~s~n",
     [ErlCmd, string:join(EbinDirs, " -pa "), AppName, CookieOpt, NameArg, VmArgs]),
   ok.
@@ -266,37 +275,37 @@ boss c=help                          Show this help
 
 %%--------------------------------------------------------------------
 %% @doc Get Boss config value app, key, default
-%% @spec boss_config_value(BossConfig, App, Key, Default) -> 
+%% @spec boss_config_value(BossConfig, App, Key, Default) ->
 %%                                         Value | Default
 %%       Searchs in boss config for a given App and Key,
 %%       Don't return an error, return Default
 %% @end
 %%--------------------------------------------------------------------
 boss_config_value(BossConf, App, Key, Default) ->
-	case boss_config_value(BossConf, App, Key) of
-		{error, _} -> Default;
-		Value -> Value
-	end.
-  
+    case boss_config_value(BossConf, App, Key) of
+        {error, _} -> Default;
+        Value -> Value
+    end.
+
 %%--------------------------------------------------------------------
 %% @doc Get Boss config value app, key
-%% @spec boss_config_value(BossConfig, App, Key) -> 
+%% @spec boss_config_value(BossConfig, App, Key) ->
 %%                                         Value | {error, Reason}
 %%       Searchs in boss config for a given App and Key
 %% @end
 %%--------------------------------------------------------------------
 boss_config_value(BossConf, App, Key) ->
-	case lists:keyfind(App, 1, BossConf) of
-		false -> 
-			{error, boss_config_app_not_found};
-		{App, AppConf} -> 
-			case lists:keyfind(Key, 1, AppConf) of
-				false -> 
-					{error, boss_config_app_setting_not_found};
-				{Key, KeyConf} ->
-					KeyConf
-			end
-	end.
+    case lists:keyfind(App, 1, BossConf) of
+        false ->
+            {error, boss_config_app_not_found};
+        {App, AppConf} ->
+            case lists:keyfind(Key, 1, AppConf) of
+                false ->
+                    {error, boss_config_app_setting_not_found};
+                {Key, KeyConf} ->
+                    KeyConf
+            end
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc Load all boss and app beam code
@@ -304,23 +313,23 @@ boss_config_value(BossConf, App, Key) ->
 %% @end
 %%--------------------------------------------------------------------
 boss_load(BossConf, AppFile) ->
-	%% Get all path-defined apps from boss config
-	%% Exclude current boss app if allready loaded
-	AppCurrent = app_name(AppFile),
-	
-	AllDirs = lists:foldl(fun({App, Config}, Dirs) ->
-		case {lists:keyfind(path, 1, Config), AppCurrent =:= App}  of
+    %% Get all path-defined apps from boss config
+    %% Exclude current boss app if allready loaded
+    AppCurrent = app_name(AppFile),
+
+    AllDirs = lists:foldl(fun({App, Config}, Dirs) ->
+        case {lists:keyfind(path, 1, Config), AppCurrent =:= App}  of
             {false, false} ->
                 [filename:join(["deps", atom_to_list(App)])|Dirs];
-            {false, _} -> 
-				Dirs;
-			{{path, Path}, true} ->
-				case filelib:is_regular(filename:join(["ebin", atom_to_list(App) ++ ".app"])) of
-					true -> Dirs;
-					false -> [Path|Dirs]
-				end;
-			{{path, Path}, _} -> [Path|Dirs]
-		end end, [], lists:reverse(BossConf)),
+            {false, _} ->
+                Dirs;
+            {{path, Path}, true} ->
+                case filelib:is_regular(filename:join(["ebin", atom_to_list(App) ++ ".app"])) of
+                    true -> Dirs;
+                    false -> [Path|Dirs]
+                end;
+            {{path, Path}, _} -> [Path|Dirs]
+        end end, [], lists:reverse(BossConf)),
 
     lists:map(fun(Dir) ->
                       lists:map(fun(B) ->
@@ -330,7 +339,7 @@ boss_load(BossConf, AppFile) ->
                                                 code:load_abs(F);
                                             {file, _} ->
                                                 ok
-                                        end 
+                                        end
                                  end, rebar_utils:beams(Dir))
               end, AllDirs),
     %% Fix starting mimetypes app in boss.erl->ensure_started(mimetypes)
@@ -406,10 +415,10 @@ all_boss_app_ebin_dirs(BossConf, AppFile) ->
     BossApp = proplists:get_value(applications, Boss),
     BinDir= fun(X) ->
                     Conf = proplists:get_value(X, BossConf),
-                    case Conf of 
-                        undefined -> 
-                            rebar_log:log(error, 
-                                          "config of your BossApp ~p is missing~n", 
+                    case Conf of
+                        undefined ->
+                            rebar_log:log(error,
+                                          "config of your BossApp ~p is missing~n",
                                           [X]);
                         _ ->
                             case {proplists:get_value(path, Conf), app_name(AppFile) =:= X} of
@@ -419,14 +428,14 @@ all_boss_app_ebin_dirs(BossConf, AppFile) ->
                                     filename:join(["deps", X, "ebin"]);
                                 {Path, _} ->
                                     filename:join(Path, "ebin")
-                            end     
+                            end
                     end
             end,
     EbinDir = [BinDir(X) || X <- BossApp, is_atom(X)],
     EbinDir.
 
 
-all_ebin_dirs1(Path, EbinDirs) ->    
+all_ebin_dirs1(Path, EbinDirs) ->
     MainEbin = filename:join([Path, "ebin"]),
     filelib:ensure_dir(filename:join([MainEbin, "foobar"])),
     DepsEbins = case os:type() of
@@ -453,14 +462,14 @@ all_ebin_dirs1(Path, EbinDirs) ->
 
 all_ebin_dirs2(Path) ->
     case file:list_dir(filename:join([Path, "deps"])) of
-        {ok, Dirs} -> 
-            lists:map(fun(Dir) -> 
+        {ok, Dirs} ->
+            lists:map(fun(Dir) ->
                               filename:join([Path, "deps", Dir, "ebin"])
                       end, Dirs);
-        {error, Reason} -> 
+        {error, Reason} ->
             rebar_log:log(error, "error compilation with reason ~p~n", [Reason]),
             []
-    end.       
+    end.
 
 
 %%--------------------------------------------------------------------
@@ -470,7 +479,7 @@ all_ebin_dirs2(Path) ->
 %%--------------------------------------------------------------------
 init_conf(BossConf) ->
     lists:map(fun(AppLine) ->
-                {App, AppConf} = AppLine, 
+                {App, AppConf} = AppLine,
                 lists:map(fun
                         ({Conf, Val}) ->
                             application:set_env(App, Conf, Val);
@@ -484,16 +493,16 @@ init_conf(BossConf) ->
 %% ===================================================================
 
 app_config(AppFile) ->
-	{ok, AppConfig} = file:consult(AppFile),
-	AppConfig.
+    {ok, AppConfig} = file:consult(AppFile),
+    AppConfig.
 
 app_name(AppFile) ->
-	[{application, AppName, _}] = app_config(AppFile),
-	AppName.
+    [{application, AppName, _}] = app_config(AppFile),
+    AppName.
 
 host_name(sname) ->
-	{ok, Host} = inet:gethostname(),
-	Host;
+    {ok, Host} = inet:gethostname(),
+    Host;
 host_name(name) ->
   net_adm:localhost().
 
@@ -549,13 +558,13 @@ max_processes(BossConf) ->
     boss_config_value(BossConf, boss, vm_max_processes, 32768).
 
 erl_command() ->
-    case os:type() of 
+    case os:type() of
         {win32, _} -> "werl";
         _ -> "exec erl"
     end.
 
 report_bad_client_version_and_exit(BossConf) ->
-    io:format("ERROR: Your boss_rebar plugin is outdated~nPlease copy it again from your updated ChicagoBoss installation:~nGuessed command:~ncp ~s/skel/priv/rebar/boss_plugin.erl priv/rebar/boss_plugin.erl~n", [boss_config_value(BossConf, boss, path)]), 
+    io:format("ERROR: Your boss_rebar plugin is outdated~nPlease copy it again from your updated ChicagoBoss installation:~nGuessed command:~ncp ~s/skel/priv/rebar/boss_plugin.erl priv/rebar/boss_plugin.erl~n", [boss_config_value(BossConf, boss, path)]),
     halt(1).
 
 report_old_erlang_version_and_exit(Vsn) ->

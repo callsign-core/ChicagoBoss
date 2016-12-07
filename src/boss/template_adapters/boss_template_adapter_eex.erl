@@ -1,3 +1,15 @@
+%%-------------------------------------------------------------------
+%% @author
+%%     ChicagoBoss Team and contributors, see AUTHORS file in root directory
+%% @end
+%% @copyright
+%%     This file is part of ChicagoBoss project.
+%%     See AUTHORS file in root directory
+%%     for license information, see LICENSE file in root directory
+%% @end
+%% @doc
+%%-------------------------------------------------------------------
+
 -module(boss_template_adapter_eex).
 -compile(export_all).
 
@@ -25,7 +37,7 @@ compile_file(ViewPath, Module, Options) ->
     ModuleAst  = erl_syntax:attribute(erl_syntax:atom(module), [erl_syntax:atom(Module)]),
 
     ExportAst = erl_syntax:attribute(erl_syntax:atom(export),
-        [erl_syntax:list([erl_syntax:arity_qualifier(erl_syntax:atom(render), 
+        [erl_syntax:list([erl_syntax:arity_qualifier(erl_syntax:atom(render),
                         erl_syntax:integer(1))])]),
 
     Forms = [erl_syntax:revert(X) || X <- [ModuleAst, ExportAst, Render0FunctionAst]],

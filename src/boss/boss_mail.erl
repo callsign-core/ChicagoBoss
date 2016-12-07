@@ -1,8 +1,20 @@
+%%-------------------------------------------------------------------
+%% @author
+%%     ChicagoBoss Team and contributors, see AUTHORS file in root directory
+%% @end
+%% @copyright
+%%     This file is part of ChicagoBoss project.
+%%     See AUTHORS file in root directory
+%%     for license information, see LICENSE file in root directory
+%% @end
+%% @doc
+%%-------------------------------------------------------------------
+
 -module(boss_mail).
--export([start/1, stop/0, send_template/3, send_template/4, 
+-export([start/1, stop/0, send_template/3, send_template/4,
         send/4, send/5, send/6]).
 
--spec start(_) -> any().
+-spec start(_) -> 'ignore' | {'error',_} | {'ok',pid()}.
 -spec stop() -> 'ok'.
 -spec send_template(types:application(),atom(),[any()]) -> any().
 -spec send_template(types:application(),atom(),[any()],_) -> any().
@@ -10,17 +22,17 @@
 -spec send(_,_,_,atom() | binary() | string(),[any()]) -> any().
 -spec send(_,_,_,atom() | binary() | string(),[any()],_) -> any().
 -spec do_send(_,_,_,_,_) -> any().
--spec send_message(_,_,_,atom(),_,_,_,_) -> any().
--spec build_message(_,atom(),[{_,_}],_,[any()]) -> [[any()],...].
+-spec send_message(atom(),_,_,atom(),_,_,_,_) -> any().
+-spec build_message(atom(),atom(),[{_,_}],_,[any()]) -> [[any()],...].
 -spec convert_unix_newlines_to_dos(binary() | [any()]) -> [any()].
 -spec convert_unix_newlines_to_dos([any()],[any()]) -> [any()].
 -spec build_message_header([{_,_}],[[[any()] | 61 | 95] | 1..255,...],_) -> [[any(),...]].
 -spec add_fields([{_,_}],[any()],[[any(),...]]) -> [[any(),...]].
--spec build_message_body_attachments(_,_,_,[{_,_} | {_,_,binary() | maybe_improper_list(any(),binary() | [])}],_,_) -> 'undefined' | {[[[any()] | 61 | 95] | 1..255,...],_}.
--spec build_message_body(_,_,_,_,_) -> 'undefined' | {[[[any()] | 61 | 95] | 1..255,...],_}.
--spec render_view(types:application(),{_,[104 | 108 | 109 | 116 | 120,...]},_,_) -> any().
--spec render_multipart_view([{_,_} | {_,_,binary() | maybe_improper_list(any(),binary() | [])},...],[[[any()] | 61 | 95],...],_) -> [[any(),...],...].
--spec render_multipart_view1([{_,_} | {_,_,binary() | maybe_improper_list(any(),binary() | [])}],[[[any()] | 61 | 95],...],_) -> [any(),...].
+-spec build_message_body_attachments(atom(),atom() | string() | number(),_,[{_,binary() | maybe_improper_list(any(),binary() | [])} | {_,_,binary() | maybe_improper_list(any(),binary() | [])}],_,_) -> 'undefined' | {[[[any()] | 61 | 95] | 1..255,...],_}.
+-spec build_message_body(atom(),atom() | string() | number(),_,_,_) -> 'undefined' | {[[[any()] | 61 | 95] | 1..255,...],_}.
+-spec render_view(atom(),{atom() | string() | number(),[104 | 108 | 109 | 116 | 120,...]},_,_) -> any().
+-spec render_multipart_view([{_,binary() | maybe_improper_list(any(),binary() | [])} | {_,_,binary() | maybe_improper_list(any(),binary() | [])},...],[[[any()] | 61 | 95],...],_) -> [[any(),...],...].
+-spec render_multipart_view1([{_,binary() | maybe_improper_list(any(),binary() | [])} | {_,_,binary() | maybe_improper_list(any(),binary() | [])}],[[[any()] | 61 | 95],...],_) -> [any(),...].
 -spec wrap_to_76(binary()) -> [binary(),...].
 -spec wrap_to_76(binary(),[<<_:16,_:_*592>>]) -> binary().
 
@@ -34,20 +46,20 @@ send_template(Application, Action, Args) ->
     send_template(Application, Action, Args, undefined).
 
 send_template(Application, Action, Args, Callback) ->
-    boss_load:load_mail_controllers(Application),
+    _ = boss_load:load_mail_controllers(Application),
     Controller = list_to_atom(lists:concat([Application, "_outgoing_mail_controller"])),
     case apply(Controller, Action, Args) of
         {ok, FromAddress, ToAddress, HeaderFields} ->
             send_message(Application, FromAddress, ToAddress, Action, HeaderFields, [], [], Callback);
-        {ok, FromAddress, ToAddress, HeaderFields, Variables} -> 
+        {ok, FromAddress, ToAddress, HeaderFields, Variables} ->
             send_message(Application, FromAddress, ToAddress, Action, HeaderFields, Variables, [], Callback);
-        {ok, FromAddress, ToAddress, HeaderFields, Variables, Options} -> 
+        {ok, FromAddress, ToAddress, HeaderFields, Variables, Options} ->
             send_message(Application, FromAddress, ToAddress, Action, HeaderFields, Variables, Options, Callback);
         {nevermind, Reason} ->
-            lager:info("Mail Not sent because of ~p", [Reason]),
-	    {ok, Reason};
+            _ = lager:info("Mail Not sent because of ~p", [Reason]),
+        {ok, Reason};
         nevermind ->
-            lager:info("Mail Not sent no reason"),
+            _ = lager:info("Mail Not sent no reason"),
             ok
     end.
 
@@ -67,7 +79,7 @@ do_send(FromAddress, ToAddress, Subject, Body, Callback) ->
                                           {"From", FromAddress}],
                                          "text/plain",
                                          undefined),
-    gen_server:call(boss_mail, {deliver, FromAddress, ToAddress, 
+    gen_server:call(boss_mail, {deliver, FromAddress, ToAddress,
             fun() -> [MessageHeader, "\r\n", convert_unix_newlines_to_dos(Body)] end,
             Callback}).
 
@@ -154,7 +166,7 @@ build_message_body(App, Action, Variables, ContentLanguage, CharSet) ->
                     Boundary = smtp_util:generate_message_boundary(),
                     {"multipart/alternative; boundary=\""++Boundary++"\"",
                         render_multipart_view(
-                            [{"text/plain", TextView}, 
+                            [{"text/plain", TextView},
                                 {"text/html", HtmlView}], Boundary, CharSet)}
             end
     end.
@@ -167,8 +179,8 @@ render_view(App, {Action, Extension}, Variables, ContentLanguage) ->
     case boss_load:load_view_if_dev(App, ViewPath, ViewModules, TranslatorPid) of
         {ok, ViewModule, _ViewAdapter} ->
             TranslationFun = boss_translator:fun_for(TranslatorPid, ContentLanguage),
-            ViewModule:render([{"_lang", ContentLanguage}|Variables], 
-                [{translation_fun, TranslationFun}, {locale, ContentLanguage}, 
+            ViewModule:render([{"_lang", ContentLanguage}|Variables],
+                [{translation_fun, TranslationFun}, {locale, ContentLanguage},
                     {application, App}, {router_pid, RouterPid}]);
         _ ->
             undefined
@@ -181,9 +193,9 @@ render_multipart_view(Parts, Boundary, CharSet) ->
 render_multipart_view1([], Boundary, _) ->
     ["--", Boundary, "--"];
 render_multipart_view1([{FileName, MimeType, Body}|Rest], Boundary, CharSet) ->
-    ["--", Boundary, 
-        "\r\n", "Content-Type: ", build_content_type(MimeType, CharSet), 
-        "\r\n", "Content-Disposition: attachment; filename=", FileName, 
+    ["--", Boundary,
+        "\r\n", "Content-Type: ", build_content_type(MimeType, CharSet),
+        "\r\n", "Content-Disposition: attachment; filename=", FileName,
         "\r\n", "Content-Transfer-Encoding: base64",
         "\r\n\r\n",
         wrap_to_76(base64:encode(erlang:iolist_to_binary(Body))), "\r\n", render_multipart_view1(Rest, Boundary, CharSet)];

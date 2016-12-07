@@ -1,3 +1,15 @@
+%%-------------------------------------------------------------------
+%% @author
+%%     ChicagoBoss Team and contributors, see AUTHORS file in root directory
+%% @end
+%% @copyright
+%%     This file is part of ChicagoBoss project.
+%%     See AUTHORS file in root directory
+%%     for license information, see LICENSE file in root directory
+%% @end
+%% @doc
+%%-------------------------------------------------------------------
+
 -module(boss_mq_test).
 -include("std.hrl").
 
@@ -22,13 +34,13 @@ spec_test_() ->
 -type datetime() :: {date(), time()}.
 prop_pull_recieve() ->
     ?FORALL({Msg, PullTime},
-            {{refrence, datetime(), jsx:json_term()},
+            {{refrence, datetime(), jsx:json_text()},
              datetime()},
              begin
                  self() ! Msg,
                  {ok, NewTimeStamp, Messages}       = boss_mq:pull_recieve(100, {ok, PullTime}),
                  {refrence, NewTimeStamp, Messages} =:= Msg
-                     
+
              end).
 prop_pull_recieve_timeout() ->
     ?FORALL({ Pulltime},
