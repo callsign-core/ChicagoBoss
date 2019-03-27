@@ -179,7 +179,7 @@ route(Url, State) ->
                     not_found
             end;
         _Rte = #boss_route{ application = App, controller = C, action = A, params = P } ->
-            ControllerModule = list_to_atom(boss_files:web_controller(App, C, State#state.controllers)),
+            ControllerModule = list_to_atom(boss_files:web_controller(App, C, boss_files:web_controller_list(App))),
             {Tokens, []}     = boss_controller_lib:convert_params_to_tokens(P, ControllerModule, list_to_atom(A)),
             {ok, {App, C, A, Tokens}}
     end.
