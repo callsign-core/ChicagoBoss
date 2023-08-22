@@ -23,11 +23,11 @@
 encode([First|_] = Data, ModelList) ->
     case boss_model_manager:is_model_instance(First, ModelList) of
         true ->
-				    io:format("~p / ~p~n", [lists:map(fun boss_model_manager:to_json/1, Data), Data]),
-            jsx:encode(lists:map(fun boss_model_manager:to_json/1, Data));
+          % mochijson2:encode(lists:map(fun boss_model_manager:to_json/1, Data));
+          jsx:encode(lists:map(fun boss_model_manager:to_json/1, Data));
         false ->
-				    io:format("~p / ~p~n", [Data, ModelList]),
-            jsx:encode(json_data1(Data, ModelList, []))
+          % mochijson2:encode(json_data1(Data, ModelList, []))
+          jsx:encode(json_data1(Data, ModelList, []))
     end;
 
 encode([],_) ->
@@ -36,16 +36,17 @@ encode([],_) ->
 encode(Data, ModelList) ->
     case boss_model_manager:is_model_instance (Data, ModelList) of
         true ->
-				    io:format("~p / ~p~n", [Data, ModelList]),
-            jsx:encode(boss_model_manager:to_json(Data));
+          % mochijson2:encode(boss_model_manager:to_json(Data));
+          jsx:encode(boss_model_manager:to_json(Data));
         false ->
-				    io:format("~p / ~p~n", [Data, ModelList]),
-            jsx:encode(json_data1(Data, ModelList, []))
+          % mochijson2:encode(json_data1(Data, ModelList, []))
+          jsx:encode(json_data1(Data, ModelList, []))
     end.
 
 
 json_data1([], _, Acc) ->
-    {struct, lists:reverse(Acc)};
+    %{struct, lists:reverse(Acc)};
+    lists:reverse(Acc);
 
 json_data1([{VariableName, [First|_] = Variable}|Rest], ModelList, Acc) when is_integer(First) ->
     json_data1(Rest, ModelList, [{VariableName, list_to_binary(Variable)}|Acc]);

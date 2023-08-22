@@ -62,14 +62,14 @@ dummy_instance(Model) ->
 to_json(Object) ->
   Data = lists:map (fun
     ({Attr, Val}) when is_list (Val) ->
-       {Attr, list_to_binary (Val)};
+       {atom_to_binary(Attr, utf8), list_to_binary (Val)};
     ({Attr, {_,_,_} = Val}) ->
-       {Attr, iso8601:format(Val)};
+       {atom_to_binary(Attr, utf8), iso8601:format(Val)};
     ({Attr, {{_, _, _}, {_, _, _}} = Val}) ->
-       {Attr, iso8601:format(Val)};
+       {atom_to_binary(Attr, utf8), iso8601:format(Val)};
     (Other) ->
        Other
-  end, Object:attributes()),
-  {struct, Data}.
+  end, Object:attributes()).
+  % {struct, Data}.
 
 %% vim: fdm=syntax:fdn=3:tw=74:ts=2:syn=erlang

@@ -191,7 +191,7 @@ process_action_result(Info, {json, Data, Headers}, ExtraHeaders, AppInfo) ->
                  boss_web_controller:merge_headers(Headers, [{"Content-Type", "application/json"}])}, ExtraHeaders, AppInfo);
 process_action_result(Info, {jsonp, Callback, Data, Headers}, ExtraHeaders, AppInfo) ->
     JsonData  = boss_json:encode(Data, AppInfo#boss_app_info.model_modules),
-    process_action_result(Info, {output, Callback ++ "(" ++ JsonData ++ ");",
+    process_action_result(Info, {output, Callback ++ "(" ++ binary_to_list(JsonData) ++ ");",
                  boss_web_controller:merge_headers(Headers, [{"Content-Type", "application/javascript"}])}, ExtraHeaders, AppInfo);
 process_action_result(_, {output, Payload, Headers}, ExtraHeaders, _) ->
     {ok, Payload, boss_web_controller:merge_headers(Headers, ExtraHeaders)};
