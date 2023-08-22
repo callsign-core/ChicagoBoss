@@ -428,6 +428,6 @@ parse([], Body) ->
     mochiweb_html:parse([<<"<html>">>, Body, <<"</html>">>]);
 parse([Head|Tail], Body) ->
     case Head of
-        {"Content-Type", "application/json"} -> mochijson2:decode(Body);
+        {"Content-Type", "application/json"} -> jsx:decode(Body);
         _ -> parse(Tail, Body)
     end.

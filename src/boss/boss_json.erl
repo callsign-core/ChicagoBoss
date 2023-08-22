@@ -23,9 +23,11 @@
 encode([First|_] = Data, ModelList) ->
     case boss_model_manager:is_model_instance(First, ModelList) of
         true ->
-            mochijson2:encode(lists:map(fun boss_model_manager:to_json/1, Data));
+				    io:format("~p / ~p~n", [lists:map(fun boss_model_manager:to_json/1, Data), Data]),
+            jsx:encode(lists:map(fun boss_model_manager:to_json/1, Data));
         false ->
-            mochijson2:encode(json_data1(Data, ModelList, []))
+				    io:format("~p / ~p~n", [Data, ModelList]),
+            jsx:encode(json_data1(Data, ModelList, []))
     end;
 
 encode([],_) ->
@@ -34,9 +36,11 @@ encode([],_) ->
 encode(Data, ModelList) ->
     case boss_model_manager:is_model_instance (Data, ModelList) of
         true ->
-            mochijson2:encode(boss_model_manager:to_json(Data));
+				    io:format("~p / ~p~n", [Data, ModelList]),
+            jsx:encode(boss_model_manager:to_json(Data));
         false ->
-            mochijson2:encode(json_data1(Data, ModelList, []))
+				    io:format("~p / ~p~n", [Data, ModelList]),
+            jsx:encode(json_data1(Data, ModelList, []))
     end.
 
 
