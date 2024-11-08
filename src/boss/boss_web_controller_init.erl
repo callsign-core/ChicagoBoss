@@ -86,7 +86,8 @@ init_master_node(Env, ThisNode) ->
             end;
         true ->
             _ = lager:debug("Pinging master node ~p from ~p", [MasterNode, ThisNode]),
-            pong = net_adm:ping(MasterNode)
+            % pong = net_adm:ping(MasterNode)
+            net_adm:ping(MasterNode)
     end,
     {ok,MasterNode}.
 
