@@ -11,18 +11,24 @@
 %%-------------------------------------------------------------------
 
 -module(boss_log_util).
--export([stacktrace/2]).
+-export([stacktrace/2, stacktrace/3]).
 
 -ifdef(TEST).
 -export([format_stacktrace/3]).
 -endif.
 
--spec stacktrace(atom(), any()) -> [char()].
+-spec stacktrace(atom(), any()) -> iolist().
+-spec stacktrace(atom(), any(), list()) -> iolist().
 
 %% @doc Generates a stacktrace and formats it according to the boss_env setting
 %% log_stack_multiline.
+%% Kept for source compatibility. Modern OTP exposes exception stacks only
+%% through Class:Error:Trace in catch; callers with a stack use stacktrace/3.
 stacktrace(Class, Error) ->
-    format_stacktrace(Class, Error, erlang:get_stacktrace()).
+    stacktrace(Class, Error, []).
+
+stacktrace(Class, Error, Trace) ->
+    format_stacktrace(Class, Error, Trace).
 
 format_stacktrace(Class, Error, Trace) ->
     Multiline = boss_env:get_env(log_stack_multiline, false),
@@ -73,11 +79,18 @@ arg_list(Args) ->
       ", "
      ).
 
-frame({Module, Func, ArityOrArgs, [{file, Filename}, {line, LineNo}]}, true) ->
-    io_lib:format(" ~s:~b", [Filename, LineNo]) ++ multiline_func_info(Module, Func, ArityOrArgs);
-frame({Module, Func, ArityOrArgs, []}, true) ->
-    multiline_func_info(Module, Func, ArityOrArgs);
-frame({Module, Func, ArityOrArgs, [{file, Filename}, {line, LineNo}]}, _) ->
-    io_lib:format("{~s,[{file,\"~s\"},{line,~b}]}", [default_func_info(Module, Func, ArityOrArgs), Filename, LineNo]);
-frame({Module, Func, ArityOrArgs, []}, _) ->
-    io_lib:format("{~s,[]}", [default_func_info(Module, Func, ArityOrArgs)]).
+frame({Module, Func, ArityOrArgs, Info}, true) ->
+    Location = case {proplists:get_value(file, Info), proplists:get_value(line, Info)} of
+                   {undefined, _} -> [];
+                   {_, undefined} -> [];
+                   {Filename, LineNo} -> io_lib:format(" ~s:~b", [Filename, LineNo])
+               end,
+    Location ++ multiline_func_info(Module, Func, ArityOrArgs);
+frame({Module, Func, ArityOrArgs, Info}, _) ->
+    case {proplists:get_value(file, Info), proplists:get_value(line, Info)} of
+        {undefined, _} -> io_lib:format("{~s,[]}", [default_func_info(Module, Func, ArityOrArgs)]);
+        {_, undefined} -> io_lib:format("{~s,[]}", [default_func_info(Module, Func, ArityOrArgs)]);
+        {Filename, LineNo} ->
+            io_lib:format("{~s,[{file,\"~s\"},{line,~b}]}",
+                          [default_func_info(Module, Func, ArityOrArgs), Filename, LineNo])
+    end.
