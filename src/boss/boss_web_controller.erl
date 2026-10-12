@@ -77,18 +77,19 @@ init(Config) ->
     Pid                        = boss_web_controller_init:init_webserver(
                                    ThisNode, MasterNode, SSLEnable,
                                    SSLOptions, ServicesSupPid, ServerConfig),
+    self() ! qcb_start_applications,
     {ok, #state{
                 router_adapter  = RouterAdapter,
                 service_sup_pid = ServicesSupPid,
                 http_pid        = Pid,
-                is_master_node  = (ThisNode =:= MasterNode) }, 0}.
+                is_master_node  = (ThisNode =:= MasterNode) }}.
 
 init_server_config(Config, RouterAdapter) ->
     [{loop, fun(Req) ->
             boss_web_controller_handle_request:handle_request(Req, RouterAdapter)
             end} | Config].
 
-handle_info(timeout, #state{service_sup_pid = ServicesSupPid} = State) ->
+handle_info(qcb_start_applications, #state{service_sup_pid = ServicesSupPid} = State) ->
     Applications    = boss_env:get_env(applications, []),
     AppInfoList     = boss_web_controller_util:start_boss_applications(Applications,
                                                                        ServicesSupPid,
@@ -304,8 +305,8 @@ call_controller_action(Adapter, AdapterInfo, RequestContext) ->
     try
         Adapter:action(AdapterInfo, RequestContext)
     catch
-        Class:Error ->
-            _ = lager:error("Error in controller ~s", [boss_log_util:stacktrace(Class, Error)]),
+        Class:Error:Stacktrace ->
+            _ = lager:error("Error in controller ~s", [boss_log_util:stacktrace(Class, Error, Stacktrace)]),
             {error, "Error in controller, see console.log for details\n"}
     end.
 
