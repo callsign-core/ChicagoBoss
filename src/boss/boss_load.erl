@@ -514,8 +514,20 @@ module_compiled_date(Module) when is_atom(Module) ->
             %% module compile times are in universal time, while
             %% file modification times are in localtime
             calendar:universal_time_to_local_time({{Y,M,D}, {H,I,S}});
-        _ -> 0 %% 0 always less than any tuple
+        _ -> module_beam_date(Module)
     catch
+        _ -> module_beam_date(Module)
+    end.
+
+%% Modern OTP omits compile time. Only an actual BEAM path is a reliable
+%% fallback; in-memory/source-loaded modules must still recompile conservatively.
+module_beam_date(Module) ->
+    case code:which(Module) of
+        Path when is_list(Path) ->
+            case filename:extension(Path) of
+                ".beam" -> filelib:last_modified(Path);
+                _ -> 0
+            end;
         _ -> 0
     end.
 
